@@ -7,7 +7,7 @@ use halo2_proofs::{
     circuit::{floor_planner, Layouter, Value},
     plonk::{
         self, Advice, Column, Constraints, Expression, Instance as InstanceColumn, Selector,
-        SingleVerifier,
+        SingleVerifier, VerificationStrategy,
     },
     poly::Rotation,
     transcript::{Blake2bRead, Blake2bWrite},
@@ -690,7 +690,7 @@ impl plonk::Circuit<pallas::Base> for Circuit {
 /// The verifying key for the Orchard Action circuit.
 #[derive(Debug)]
 pub struct VerifyingKey {
-    params: halo2_proofs::poly::commitment::Params<vesta::Affine>,
+    pub(crate) params: halo2_proofs::poly::commitment::Params<vesta::Affine>,
     vk: plonk::VerifyingKey<vesta::Affine>,
 }
 
@@ -852,8 +852,15 @@ impl Proof {
         Ok(Proof(transcript.finalize()))
     }
 
-    /// Verifies this proof with the given instances.
-    pub fn verify(&self, vk: &VerifyingKey, instances: &[Instance]) -> Result<(), plonk::Error> {
+    pub(crate) fn verify_with_strategy<'vk, V>(
+        &self,
+        vk: &'vk VerifyingKey,
+        instances: &[Instance],
+        strategy: V,
+    ) -> Result<V::Output, plonk::Error>
+    where
+        V: VerificationStrategy<'vk, vesta::Affine>,
+    {
         let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance()).collect();
         let instances: Vec<Vec<_>> = instances
             .iter()
@@ -861,9 +868,14 @@ impl Proof {
             .collect();
         let instances: Vec<_> = instances.iter().map(|i| &i[..]).collect();
 
-        let strategy = SingleVerifier::new(&vk.params);
         let mut transcript = Blake2bRead::init(&self.0[..]);
         plonk::verify_proof(&vk.params, &vk.vk, strategy, &instances, &mut transcript)
+    }
+
+    /// Verifies this proof with the given instances.
+    pub fn verify(&self, vk: &VerifyingKey, instances: &[Instance]) -> Result<(), plonk::Error> {
+        let strategy = SingleVerifier::new(&vk.params);
+        self.verify_with_strategy(vk, &instances, strategy)
     }
 
     /// Constructs a new Proof value.
