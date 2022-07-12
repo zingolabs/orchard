@@ -12,6 +12,7 @@ and this project adheres to Rust's notion of
   -  `Note::from_parts` now public
   - added pub fn `random_seed`
 - `keys::Diversifier::from_bytes` now public
+- `address::Address::diversifier` now public
 
 ## [0.2.0] - 2022-06-24
 ### Added
