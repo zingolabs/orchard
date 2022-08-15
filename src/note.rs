@@ -111,19 +111,21 @@ impl PartialEq for Note {
 impl Eq for Note {}
 
 impl Note {
-    ///Create a Note from its component parts.
+    ///Create a Note from its component parts. Returns None if a valid
+    ///[`NoteCommitment`] cannot be derived from the note.
     pub fn from_parts(
         recipient: Address,
         value: NoteValue,
         rho: Nullifier,
         rseed: RandomSeed,
-    ) -> Self {
-        Note {
+    ) -> CtOption<Self> {
+        let note = Note {
             recipient,
             value,
             rho,
             rseed,
-        }
+        };
+        CtOption::new(note, note.commitment_inner().is_some())
     }
 
     ///Get the seed randomness used by the note
@@ -143,14 +145,9 @@ impl Note {
         mut rng: impl RngCore,
     ) -> Self {
         loop {
-            let note = Note {
-                recipient,
-                value,
-                rho,
-                rseed: RandomSeed::random(&mut rng, &rho),
-            };
-            if note.commitment_inner().is_some().into() {
-                break note;
+            let note = Note::from_parts(recipient, value, rho, RandomSeed::random(&mut rng, &rho));
+            if note.is_some().into() {
+                break note.unwrap();
             }
         }
     }
