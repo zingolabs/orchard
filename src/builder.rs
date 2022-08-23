@@ -221,6 +221,7 @@ pub struct Builder {
     recipients: Vec<RecipientInfo>,
     flags: Flags,
     anchor: Anchor,
+    value_balance: i64,
 }
 
 impl Builder {
@@ -231,6 +232,7 @@ impl Builder {
             recipients: vec![],
             flags,
             anchor,
+            value_balance: 0,
         }
     }
 
@@ -269,6 +271,7 @@ impl Builder {
             .scope_for_address(&note.recipient())
             .ok_or("FullViewingKey does not correspond to the given note")?;
 
+        self.value_balance += note.value().inner() as i64;
         self.spends.push(SpendInfo {
             dummy_sk: None,
             fvk,
@@ -292,6 +295,7 @@ impl Builder {
             return Err("Outputs are not enabled for this builder");
         }
 
+        self.value_balance -= value.inner() as i64;
         self.recipients.push(RecipientInfo {
             ovk,
             recipient,
@@ -300,6 +304,12 @@ impl Builder {
         });
 
         Ok(())
+    }
+
+    /// The net value of the bundle. The value of all spends, minus the value
+    /// of all outputs.
+    pub fn value_balance(&self) -> i64 {
+        self.value_balance
     }
 
     /// Builds a bundle containing the given spent notes and recipients.
