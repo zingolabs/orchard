@@ -30,7 +30,7 @@ ff = "0.12"
 fpe = "0.5"
 group = "0.12"
 halo2_gadgets = "0.2"
-halo2_proofs = "0.2"
+halo2_proofs = { version = "0.2", default-features = false, features = ["batch"] }
 hex = "0.4"
 lazy_static = "1"
 memuse = { version = "0.2", features = ["nonempty"] }
@@ -64,7 +64,10 @@ pprof = { version = "0.9", features = ["criterion", "flamegraph"] } # MSRV 1.56
 bench = false
 
 [features]
-dev-graph = ["halo2_proofs/dev-graph", "plotters"]
+default = ["halo2-batch", "halo2-multicore"]
+halo2-batch = ["halo2_proofs/batch"]
+halo2-multicore = ["halo2_proofs/multicore"]
+dev-graph = ["halo2_proofs/dev-graph", "image", "plotters"]
 test-dependencies = ["proptest"]
 
 [[bench]]
